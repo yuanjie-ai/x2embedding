@@ -16,7 +16,10 @@ pip install -U x2embedding
 
 # Usages
 ```
-import x2embedding
+from x2embedding.zoo import Bert4Vec
+
+s2v = Bert4Vec()
+s2v.encode(['万物皆可embedding'])
 ```
 
 ---
