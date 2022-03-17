@@ -41,6 +41,7 @@ class Bert4Vec(object):
 
             assert zipfile.is_zipfile(filename)
             zipfile.ZipFile(filename).extractall()
+        logger.info(bert_dir)
 
         self.dict_path = f"{bert_dir}/vocab.txt"
         self.config_path = f"{bert_dir}/bert_config.json"
@@ -64,11 +65,16 @@ class Bert4Vec(object):
         self.encoder = keras.models.Model(self._bert.model.inputs, self._bert.model.outputs[0])
         # self._seq2seq = keras.models.Model(self._bert.model.inputs, self._bert.model.outputs[1])
 
-    def encode(self, sentences=None, maxlen=64, batch_size=1000):
+    def encode(self, sentences='万物皆可embedding', maxlen=256, batch_size=1000, decimals=6, return_list=True):
         """自行设计缓存"""
-        data = self.sentences2seq(sentences=sentences, maxlen=maxlen)
-        vecs = self.encoder.predict(data, batch_size=batch_size)
-        return normalize(vecs)
+        if isinstance(sentences, str):
+            sentences = [sentences]
+
+        assert isinstance(sentences, (tuple, list))
+
+        data = self.sentences2seq(sentences=map(str, sentences), maxlen=maxlen)
+        vecs = normalize(np.round(self.encoder.predict(data, batch_size=batch_size), decimals))
+        return vecs.tolist() if return_list else vecs
 
     def sentences2seq(self, sentences, maxlen=64):
         batch_token_ids, batch_segment_ids = [], []
@@ -83,7 +89,11 @@ class Bert4Vec(object):
 
 if __name__ == '__main__':
     BERT_HOME = "/Users/yuanjie/Downloads/chinese_roformer-sim-char-ft_L-6_H-384_A-6"
-
     s2v = Bert4Vec(BERT_HOME)
-
     print(s2v.encode(['万物皆向量']))
+
+    from appzoo import App
+
+    app = App()
+    app.add_route('/simbert', s2v.encode, result_key='vectors', method='POST')
+    app.run(access_log=False)
